@@ -1,0 +1,44 @@
+name: Add a recipe
+description: Paste a recipe and it will be formatted into markdown and added to the site.
+title: Recipe
+labels: ["recipe"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Paste your recipe below. When you submit, a bot formats it into a
+        markdown file, adds it to the site, and closes this issue with a link.
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: The recipe name. Leave blank to use the first line of the text.
+      placeholder: Kimchi Fried Rice
+    validations:
+      required: false
+  - type: textarea
+    id: recipe
+    attributes:
+      label: Recipe text
+      description: >
+        Paste the full recipe. Lines beginning with a bullet (- or •) become a
+        list, and numbered lines (1. 2. 3.) become steps. Blank lines separate
+        paragraphs.
+      placeholder: |
+        - 2 cups cooked rice
+        - 1 cup kimchi, chopped
+        - 2 eggs
+
+        1. Fry the kimchi until fragrant.
+        2. Add the rice and stir-fry.
+        3. Top with a fried egg.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source link
+      description: Optional link to credit where the recipe came from.
+      placeholder: https://example.com/recipe
+    validations:
+      required: false
