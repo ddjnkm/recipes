@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recipes</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+    }
+    aside {
+      border-right: 1px solid rgba(128, 128, 128, 0.3);
+      padding: 1.5rem 1rem;
+    }
+    aside h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+    nav ul { list-style: none; margin: 0; padding: 0; }
+    nav li { margin: 0.25rem 0; }
+    nav a {
+      display: block;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      color: inherit;
+      text-decoration: none;
+    }
+    nav a:hover { background: rgba(128, 128, 128, 0.15); }
+    nav a.active { background: rgba(128, 128, 128, 0.25); font-weight: 600; }
+    main { padding: 2rem 2.5rem; max-width: 720px; }
+    main img { max-width: 100%; }
+    .empty { opacity: 0.7; }
+    @media (max-width: 640px) {
+      body { grid-template-columns: 1fr; }
+      aside { border-right: none; border-bottom: 1px solid rgba(128, 128, 128, 0.3); }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>Recipes</h1>
+    <nav><ul id="list"><li class="empty">Loading…</li></ul></nav>
+  </aside>
+  <main id="content">
+    <p class="empty">Select a recipe from the list.</p>
+  </main>
+
+  <script>
+    const list = document.getElementById("list");
+    const content = document.getElementById("content");
+    const RECIPES_DIR = "recipes/";
+
+    // Strip YAML front matter before rendering so it never shows on the page.
+    function stripFrontMatter(text) {
+      return text.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, "");
+    }
+
+    // A tiny, self-contained markdown renderer. The recipes only use headings,
+    // lists, bold, italics, inline code and links, so full markdown is overkill
+    // and an external library would be an extra dependency to break.
+    function escapeHtml(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function inline(s) {
+      return escapeHtml(s)
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
+          '<a href="$2" rel="noopener">$1</a>')
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
+        .replace(/(^|[^_])_([^_]+)_/g, "$1<em>$2</em>");
+    }
+
+    function renderMarkdown(md) {
+      const lines = md.replace(/\r\n/g, "\n").split("\n");
+      const out = [];
+      let i = 0;
+      while (i < lines.length) {
+        const line = lines[i];
+        if (!line.trim()) { i++; continue; }
+
+        const heading = line.match(/^(#{1,6})\s+(.+)$/);
+        if (heading) {
+          const level = heading[1].length;
+          out.push(`<h${level}>${inline(heading[2].trim())}</h${level}>`);
+          i++;
+          continue;
+        }
+
+        if (/^\s*[-*]\s+/.test(line)) {
+          const items = [];
+          while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+            items.push(`<li>${inline(lines[i].replace(/^\s*[-*]\s+/, ""))}</li>`);
+            i++;
+          }
+          out.push(`<ul>${items.join("")}</ul>`);
+          continue;
+        }
+
+        if (/^\s*\d+\.\s+/.test(line)) {
+          const items = [];
+          while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+            items.push(`<li>${inline(lines[i].replace(/^\s*\d+\.\s+/, ""))}</li>`);
+            i++;
+          }
+          out.push(`<ol>${items.join("")}</ol>`);
+          continue;
+        }
+
+        const para = [];
+        while (i < lines.length && lines[i].trim() &&
+               !/^(#{1,6}\s|\s*[-*]\s|\s*\d+\.\s)/.test(lines[i])) {
+          para.push(inline(lines[i].trim()));
+          i++;
+        }
+        out.push(`<p>${para.join("<br>")}</p>`);
+      }
+      return out.join("\n");
+    }
+
+    async function showRecipe(file, link) {
+      document.querySelectorAll("nav a.active").forEach(a => a.classList.remove("active"));
+      if (link) link.classList.add("active");
+      content.innerHTML = "<p class='empty'>Loading…</p>";
+      try {
+        const res = await fetch(RECIPES_DIR + encodeURIComponent(file));
+        if (!res.ok) throw new Error(res.status);
+        const md = stripFrontMatter(await res.text());
+        content.innerHTML = renderMarkdown(md);
+        location.hash = encodeURIComponent(file);
+        window.scrollTo(0, 0);
+      } catch (err) {
+        content.innerHTML = "<p class='empty'>Could not load this recipe.</p>";
+      }
+    }
+
+    async function init() {
+      let recipes;
+      try {
+        const res = await fetch("recipes.json");
+        if (!res.ok) throw new Error(res.status);
+        recipes = await res.json();
+      } catch (err) {
+        list.innerHTML = "<li class='empty'>Could not load recipe list.</li>";
+        return;
+      }
+
+      if (!recipes.length) {
+        list.innerHTML = "<li class='empty'>No recipes yet.</li>";
+        return;
+      }
+
+      list.innerHTML = "";
+      const links = {};
+      for (const recipe of recipes) {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = "#" + encodeURIComponent(recipe.file);
+        a.textContent = recipe.title;
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          showRecipe(recipe.file, a);
+        });
+        li.appendChild(a);
+        list.appendChild(li);
+        links[recipe.file] = a;
+      }
+
+      const current = decodeURIComponent(location.hash.slice(1));
+      if (current && links[current]) {
+        showRecipe(current, links[current]);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
