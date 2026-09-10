@@ -22,7 +22,7 @@
     .home:hover { text-decoration: underline; }
     .add {
       display: inline-block;
-      margin: 1rem 0 0;
+      margin: 0 0 1rem;
       padding: 0.4rem 0.75rem;
       border: 1px solid rgba(128, 128, 128, 0.4);
       border-radius: 6px;
@@ -63,11 +63,11 @@
 <body>
   <aside>
     <h1><a href="#" id="home" class="home">Recipes</a></h1>
+    <a class="add" href="https://github.com/ddjnkm/recipes/issues/new?template=recipe.yml" target="_blank" rel="noopener">+ Add a recipe</a>
     <details id="browse" open>
       <summary>All recipes</summary>
       <nav><ul id="list"><li class="empty">Loading…</li></ul></nav>
     </details>
-    <a class="add" href="https://github.com/ddjnkm/recipes/issues/new?template=recipe.yml" target="_blank" rel="noopener">+ Add a recipe</a>
   </aside>
   <main id="content">
     <p class="empty">Select a recipe from the list.</p>
@@ -157,10 +157,7 @@
         const md = stripFrontMatter(await res.text());
         content.innerHTML = renderMarkdown(md);
         location.hash = encodeURIComponent(file);
-        // Collapse the list and reset scroll so the recipe sits at the top,
-        // instead of below a long list (matters most on narrow screens).
-        document.getElementById("browse").open = false;
-        window.scrollTo(0, 0);
+        // The recipe renders in place, below the list.
       } catch (err) {
         content.innerHTML = "<p class='empty'>Could not load this recipe.</p>";
       }
