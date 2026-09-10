@@ -14,8 +14,10 @@ concurrency:
 
 jobs:
   add:
-    # Only handle issues created from the "Add a recipe" form (labeled recipe).
-    if: contains(join(github.event.issue.labels.*.name, ','), 'recipe')
+    # Only handle issues created from the "Add a recipe" form. We match the
+    # form's body instead of a label, because a label is only auto-applied if
+    # it already exists in the repo, which silently skipped the job otherwise.
+    if: contains(github.event.issue.body, '### Recipe text')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
