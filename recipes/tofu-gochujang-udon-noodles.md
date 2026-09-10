@@ -35,3 +35,5 @@ captured_at: 2026-09-10
 5. Coat a pan with cooking spray and cook the chicken over medium heat until cooked through.
 6. Cook the noodles in a pot of boiling water, then transfer immediately to cold water.
 7. Plate the noodles in a bowl, pour the sauce over top, and finish with the chicken and vegetables.
+
+[Source](https://www.tiktok.com/@joexfitness/video/7634998787592736014)
