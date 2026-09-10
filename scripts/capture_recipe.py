@@ -206,6 +206,10 @@ def main() -> int:
         f"source_url: {source_url}\n\n{raw}\n", encoding="utf-8"
     )
 
+    # Rebuild the manifest the website reads so the new recipe shows up.
+    import build_manifest
+    build_manifest.main()
+
     print(f"Wrote {recipe_path}")
     if out := os.environ.get("GITHUB_OUTPUT"):
         with open(out, "a", encoding="utf-8") as handle:
