@@ -1,5 +1,6 @@
 ---
 title: Tofu Gochujang Udon Noodles
+source_url: https://www.tiktok.com/@joexfitness/video/7634998787592736014
 captured_at: 2026-09-10
 ---
 
