@@ -18,6 +18,8 @@
       padding: 1.5rem 1rem;
     }
     aside h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+    .home { color: inherit; text-decoration: none; cursor: pointer; }
+    .home:hover { text-decoration: underline; }
     .add {
       display: inline-block;
       margin: 0 0 1rem;
@@ -51,7 +53,7 @@
 </head>
 <body>
   <aside>
-    <h1>Recipes</h1>
+    <h1><a href="#" id="home" class="home">Recipes</a></h1>
     <a class="add" href="https://github.com/ddjnkm/recipes/issues/new?template=recipe.yml" target="_blank" rel="noopener">+ Add a recipe</a>
     <nav><ul id="list"><li class="empty">Loading…</li></ul></nav>
   </aside>
@@ -143,11 +145,26 @@
         const md = stripFrontMatter(await res.text());
         content.innerHTML = renderMarkdown(md);
         location.hash = encodeURIComponent(file);
-        window.scrollTo(0, 0);
+        // Bring the recipe to the top of the page (matters on narrow screens,
+        // where the list sits above the content).
+        content.scrollIntoView({ block: "start" });
       } catch (err) {
         content.innerHTML = "<p class='empty'>Could not load this recipe.</p>";
       }
     }
+
+    // Return to the empty "home" view with no recipe selected.
+    function goHome() {
+      document.querySelectorAll("nav a.active").forEach(a => a.classList.remove("active"));
+      content.innerHTML = "<p class='empty'>Select a recipe from the list.</p>";
+      history.replaceState(null, "", location.pathname + location.search);
+      window.scrollTo(0, 0);
+    }
+
+    document.getElementById("home").addEventListener("click", (e) => {
+      e.preventDefault();
+      goHome();
+    });
 
     async function init() {
       let recipes;
