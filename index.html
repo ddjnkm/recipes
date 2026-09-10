@@ -18,6 +18,17 @@
       padding: 1.5rem 1rem;
     }
     aside h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+    .add {
+      display: inline-block;
+      margin: 0 0 1rem;
+      padding: 0.4rem 0.75rem;
+      border: 1px solid rgba(128, 128, 128, 0.4);
+      border-radius: 6px;
+      color: inherit;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .add:hover { background: rgba(128, 128, 128, 0.15); }
     nav ul { list-style: none; margin: 0; padding: 0; }
     nav li { margin: 0.25rem 0; }
     nav a {
@@ -41,6 +52,7 @@
 <body>
   <aside>
     <h1>Recipes</h1>
+    <a class="add" href="https://github.com/ddjnkm/recipes/issues/new?template=recipe.yml" target="_blank" rel="noopener">+ Add a recipe</a>
     <nav><ul id="list"><li class="empty">Loading…</li></ul></nav>
   </aside>
   <main id="content">
