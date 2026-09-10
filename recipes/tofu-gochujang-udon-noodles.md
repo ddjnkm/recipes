@@ -1,3 +1,8 @@
+---
+title: Tofu Gochujang Udon Noodles
+captured_at: 2026-09-10
+---
+
 # Tofu Gochujang Udon Noodles
 
 **Yield:** 1 serving
