@@ -31,6 +31,15 @@
       font-size: 0.9rem;
     }
     .add:hover { background: rgba(128, 128, 128, 0.15); }
+    #browse summary {
+      cursor: pointer;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+    }
+    #browse[open] summary { margin-bottom: 0.25rem; }
     nav ul { list-style: none; margin: 0; padding: 0; }
     nav li { margin: 0.25rem 0; }
     nav a {
@@ -55,7 +64,10 @@
   <aside>
     <h1><a href="#" id="home" class="home">Recipes</a></h1>
     <a class="add" href="https://github.com/ddjnkm/recipes/issues/new?template=recipe.yml" target="_blank" rel="noopener">+ Add a recipe</a>
-    <nav><ul id="list"><li class="empty">Loading…</li></ul></nav>
+    <details id="browse" open>
+      <summary>All recipes</summary>
+      <nav><ul id="list"><li class="empty">Loading…</li></ul></nav>
+    </details>
   </aside>
   <main id="content">
     <p class="empty">Select a recipe from the list.</p>
@@ -145,9 +157,10 @@
         const md = stripFrontMatter(await res.text());
         content.innerHTML = renderMarkdown(md);
         location.hash = encodeURIComponent(file);
-        // Bring the recipe to the top of the page (matters on narrow screens,
-        // where the list sits above the content).
-        content.scrollIntoView({ block: "start" });
+        // Collapse the list and reset scroll so the recipe sits at the top,
+        // instead of below a long list (matters most on narrow screens).
+        document.getElementById("browse").open = false;
+        window.scrollTo(0, 0);
       } catch (err) {
         content.innerHTML = "<p class='empty'>Could not load this recipe.</p>";
       }
@@ -158,6 +171,7 @@
       document.querySelectorAll("nav a.active").forEach(a => a.classList.remove("active"));
       content.innerHTML = "<p class='empty'>Select a recipe from the list.</p>";
       history.replaceState(null, "", location.pathname + location.search);
+      document.getElementById("browse").open = true;
       window.scrollTo(0, 0);
     }
 
