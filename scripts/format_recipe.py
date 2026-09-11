@@ -3,8 +3,8 @@
 
 Input comes from a GitHub issue created with the "Add a recipe" form. The
 workflow passes the issue body in the ISSUE_BODY environment variable; this
-script pulls out the form fields, applies light rule-based formatting (no AI),
-writes recipes/<slug>.md, and rebuilds the site manifest.
+script pulls out the form fields, keeps the recipe text as provided (no AI,
+nothing dropped), writes recipes/<slug>.md, and rebuilds the site manifest.
 """
 
 import os
@@ -15,6 +15,12 @@ from pathlib import Path
 
 RECIPES_DIR = Path("recipes")
 NO_RESPONSE = "_no response_"
+
+# The "Add a recipe" issue form renders each field as a '### Label' heading.
+# We split the body only on these known headings, so any markdown headers the
+# recipe text itself contains (### Notes, etc.) are kept as content instead of
+# being mistaken for a new field and cutting the recipe off.
+FIELD_HEADINGS = ("title", "recipe text", "source link")
 
 
 def parse_issue_body(body: str) -> dict:
@@ -36,7 +42,7 @@ def parse_issue_body(body: str) -> dict:
 
     for line in body.replace("\r\n", "\n").split("\n"):
         heading = re.match(r"^###\s+(.+?)\s*$", line)
-        if heading:
+        if heading and heading.group(1).strip().lower() in FIELD_HEADINGS:
             flush()
             current = heading.group(1).strip().lower()
             chunk = []
@@ -70,36 +76,30 @@ def gather_input() -> tuple[str, str, str]:
 
 
 def format_body(text: str) -> str:
-    """Light, predictable markdown formatting. No content is invented."""
+    """Use the recipe text as provided.
+
+    Nothing is dropped or reordered: every line, blank line, indentation and
+    any headers in the text are preserved. The only change is rewriting
+    uncommon bullet characters (•, ‣, ▪, ·) and "1)" style numbering into their
+    markdown equivalents so they render as lists, without altering any words.
+    """
     out: list[str] = []
     for raw in text.replace("\r\n", "\n").split("\n"):
         line = raw.rstrip()
-        stripped = line.strip()
-        if not stripped:
-            out.append("")
-            continue
 
-        # Normalize common bullet characters into markdown list items.
-        bullet = re.match(r"^[\-\*•‣▪・·]\s+(.*)$", stripped)
+        bullet = re.match(r"^(\s*)[•‣▪・·]\s+(.*)$", line)
         if bullet:
-            out.append(f"- {bullet.group(1).strip()}")
+            out.append(f"{bullet.group(1)}- {bullet.group(2)}")
             continue
 
-        # Normalize "1)" / "1." / "1 -" numbered lines into ordered list items.
-        numbered = re.match(r"^(\d+)[.)]\s+(.*)$", stripped)
+        numbered = re.match(r"^(\s*)(\d+)\)\s+(.*)$", line)
         if numbered:
-            out.append(f"{numbered.group(1)}. {numbered.group(2).strip()}")
+            out.append(f"{numbered.group(1)}{numbered.group(2)}. {numbered.group(3)}")
             continue
 
-        out.append(stripped)
+        out.append(line)
 
-    # Collapse runs of blank lines down to a single separator.
-    cleaned: list[str] = []
-    for line in out:
-        if line == "" and cleaned and cleaned[-1] == "":
-            continue
-        cleaned.append(line)
-    return "\n".join(cleaned).strip()
+    return "\n".join(out).strip("\n")
 
 
 def slugify(title: str) -> str:
