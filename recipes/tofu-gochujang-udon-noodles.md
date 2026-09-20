@@ -7,7 +7,6 @@ captured_at: 2026-09-10
 # Tofu Gochujang Udon Noodles
 
 ## Ingredients
-
 ### Chicken
 - 6 oz chicken breast, skinless, boneless, raw
 - 1/2 tbsp minced garlic
@@ -26,7 +25,6 @@ captured_at: 2026-09-10
 - 1 portion udon noodles
 
 ## Steps
-
 1. Thinly slice the cucumber, yellow onion, and green onion.
 2. Chop the chicken breast into 1/2 inch cubes.
 3. In a bowl, combine the chicken, minced garlic, and soy sauce. Set aside.
