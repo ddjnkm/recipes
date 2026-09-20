@@ -294,6 +294,10 @@
       if (!token) { setStatus("Please enter a GitHub token.", "error"); return; }
       if (!text) { setStatus("Recipe text is required.", "error"); return; }
 
+      // Save the token right away so it is remembered across visits and never
+      // has to be pasted again, even if this submission fails.
+      setToken(token);
+
       // Match the issue-form body the workflow expects.
       const body =
         "### Title\n\n" + (title || "_No response_") +
@@ -321,7 +325,6 @@
           throw new Error(msg);
         }
         const issue = await res.json();
-        setToken(token);
         setStatus(
           "Submitted. Your recipe will appear on the site a minute or two after it is " +
           "processed. <a href='" + issue.html_url + "' target='_blank' rel='noopener'>" +
