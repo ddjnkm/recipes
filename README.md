@@ -25,18 +25,28 @@ Then open http://localhost:8000/.
 
 ## Adding a recipe
 
-The easiest way is to paste the text: open a new issue using the **Add a
-recipe** form (Issues → New issue), paste the recipe, and submit. A GitHub
-Action formats it into markdown, commits it to `recipes/`, updates
-`recipes.json`, and closes the issue with a link. The Pages workflow then
-redeploys the site.
+### From the website (recommended)
 
-Formatting is rule-based (no AI):
+Click **+ Add a recipe** on the site, paste the recipe, and submit. Behind
+the scenes this creates a GitHub issue; the **Add recipe** Action formats it
+into markdown, commits it to `recipes/`, updates `recipes.json`, and the Pages
+workflow redeploys. The recipe appears a minute or two later.
 
-- The first line, or the optional Title field, becomes the recipe title.
-- Lines starting with a bullet (`-`, `*`, `•`) become a markdown list.
-- Numbered lines (`1.`, `2)`) become steps.
-- Blank lines separate paragraphs.
+Because the site is static, the form needs a GitHub token to submit:
+
+1. Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new)
+   scoped to this repository with **Issues: Read and write**.
+2. Paste it into the form once. It is stored only in your browser
+   (`localStorage`) and is sent only to `api.github.com` — never committed to
+   the repo. Use **Remove token** to clear it.
+
+### From GitHub directly
+
+You can also open a new issue using the **Add a recipe** form
+(Issues → New issue) and submit the recipe there.
+
+The formatter keeps the text as provided (no AI); it only rewrites uncommon
+bullet characters and `1)` numbering into markdown equivalents.
 
 You can also add a recipe by hand:
 
