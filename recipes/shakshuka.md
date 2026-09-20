@@ -6,8 +6,7 @@ captured_at: 2026-09-11
 
 # Shakshuka
 
-**Ingredients**
-
+## Ingredients
 - 3 tbsp extra-virgin olive oil
 - 150 g yellow onion, diced
 - 150 g red bell pepper, diced
@@ -25,8 +24,7 @@ captured_at: 2026-09-11
 - 50 g feta cheese, crumbled
 - 10 g fresh parsley, chopped
 
-**Steps**
-
+## Steps
 1. Heat the olive oil in a 30 cm skillet over medium heat.
 2. Add the onion and bell pepper and cook for 6 to 8 minutes, stirring occasionally, until softened.
 3. Add the garlic and cook for 1 minute until fragrant.
