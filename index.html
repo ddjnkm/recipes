@@ -67,6 +67,7 @@
     }
     .tokenbox small { display: block; margin-top: 0.4rem; opacity: 0.75; }
     .tokenbox button { font: inherit; cursor: pointer; }
+    #saveTok { margin-top: 0.5rem; }
     .status-error { color: #c0392b; }
     .status-ok { color: #1e8e3e; }
     #browse summary {
@@ -239,10 +240,16 @@
       }
       return "<label>GitHub token" +
         "<input id='f-token' type='password' autocomplete='off' placeholder='github_pat_...'></label>" +
+        "<button type='button' id='saveTok'>Save token</button>" +
         "<small>Create a fine-grained token with <b>Issues: Read and write</b> on this " +
         "repository. It is stored only in this browser. " +
         "<a href='https://github.com/settings/personal-access-tokens/new' target='_blank' " +
         "rel='noopener'>Create one</a>.</small>";
+    }
+
+    function refreshTokenBox() {
+      document.getElementById("tokenbox").innerHTML = tokenBoxHtml();
+      wireTokenBox();
     }
 
     function wireTokenBox() {
@@ -250,9 +257,18 @@
       if (clearTok) {
         clearTok.addEventListener("click", () => {
           setToken("");
-          const box = document.getElementById("tokenbox");
-          box.innerHTML = tokenBoxHtml();
-          wireTokenBox();
+          refreshTokenBox();
+        });
+      }
+      const saveTok = document.getElementById("saveTok");
+      if (saveTok) {
+        saveTok.addEventListener("click", () => {
+          const input = document.getElementById("f-token");
+          const value = input ? input.value.trim() : "";
+          if (!value) { setStatus("Enter a token to save.", "error"); return; }
+          setToken(value);
+          refreshTokenBox();
+          setStatus("Token saved.", "ok");
         });
       }
     }
@@ -291,12 +307,8 @@
       const text = document.getElementById("f-text").value.trim();
       const source = document.getElementById("f-source").value.trim();
 
-      if (!token) { setStatus("Please enter a GitHub token.", "error"); return; }
+      if (!token) { setStatus("Please save a GitHub token first.", "error"); return; }
       if (!text) { setStatus("Recipe text is required.", "error"); return; }
-
-      // Save the token right away so it is remembered across visits and never
-      // has to be pasted again, even if this submission fails.
-      setToken(token);
 
       // Match the issue-form body the workflow expects.
       const body =
@@ -334,9 +346,6 @@
         document.getElementById("f-title").value = "";
         document.getElementById("f-text").value = "";
         document.getElementById("f-source").value = "";
-        const box = document.getElementById("tokenbox");
-        box.innerHTML = tokenBoxHtml();
-        wireTokenBox();
       } catch (err) {
         setStatus("Could not submit: " + err.message, "error");
       }

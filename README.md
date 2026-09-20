@@ -36,9 +36,9 @@ Because the site is static, the form needs a GitHub token to submit:
 
 1. Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new)
    scoped to this repository with **Issues: Read and write**.
-2. Paste it into the form once. It is stored only in your browser
-   (`localStorage`) and is sent only to `api.github.com` — never committed to
-   the repo. Use **Remove token** to clear it.
+2. Paste it into the form and click **Save token**. It is stored only in your
+   browser (`localStorage`) and is sent only to `api.github.com` — never
+   committed to the repo. Use **Remove token** to clear it.
 
 ### From GitHub directly
 
