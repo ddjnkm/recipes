@@ -26,11 +26,49 @@
       padding: 0.4rem 0.75rem;
       border: 1px solid rgba(128, 128, 128, 0.4);
       border-radius: 6px;
+      background: transparent;
       color: inherit;
-      text-decoration: none;
+      font: inherit;
       font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
     }
     .add:hover { background: rgba(128, 128, 128, 0.15); }
+    #addForm { display: grid; gap: 1rem; max-width: 640px; }
+    #addForm label { display: grid; gap: 0.3rem; font-weight: 600; font-size: 0.9rem; }
+    #addForm .opt { font-weight: 400; opacity: 0.6; }
+    #addForm input, #addForm textarea {
+      font: inherit;
+      padding: 0.5rem;
+      border: 1px solid rgba(128, 128, 128, 0.4);
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #addForm textarea { resize: vertical; min-height: 12rem; }
+    #addForm button[type="submit"] {
+      justify-self: start;
+      padding: 0.5rem 1rem;
+      font: inherit;
+      cursor: pointer;
+      border: 1px solid rgba(128, 128, 128, 0.5);
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+    }
+    #addForm button[type="submit"]:hover { background: rgba(128, 128, 128, 0.15); }
+    .tokenbox {
+      font-size: 0.85rem;
+      border: 1px solid rgba(128, 128, 128, 0.3);
+      border-radius: 6px;
+      padding: 0.75rem;
+    }
+    .tokenbox small { display: block; margin-top: 0.4rem; opacity: 0.75; }
+    .tokenbox button { font: inherit; cursor: pointer; }
+    .status-error { color: #c0392b; }
+    .status-ok { color: #1e8e3e; }
     #browse summary {
       cursor: pointer;
       padding: 0.4rem 0.6rem;
@@ -63,7 +101,7 @@
 <body>
   <aside>
     <h1><a href="#" id="home" class="home">Recipes</a></h1>
-    <a class="add" href="https://github.com/ddjnkm/recipes/issues/new?template=recipe.yml" target="_blank" rel="noopener">+ Add a recipe</a>
+    <button class="add" id="addBtn" type="button">+ Add a recipe</button>
     <details id="browse" open>
       <summary>All recipes</summary>
       <nav><ul id="list"><li class="empty">Loading…</li></ul></nav>
@@ -176,6 +214,132 @@
       e.preventDefault();
       goHome();
     });
+
+    // --- Add a recipe from the site ---------------------------------------
+    // Submits a GitHub issue that the existing "Add recipe" workflow formats
+    // and commits. Auth uses a personal access token kept only in this
+    // browser's localStorage (never sent anywhere but api.github.com).
+    const REPO = "ddjnkm/recipes";
+    const TOKEN_KEY = "gh_token";
+
+    function getToken() {
+      try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; }
+    }
+    function setToken(value) {
+      try {
+        if (value) localStorage.setItem(TOKEN_KEY, value);
+        else localStorage.removeItem(TOKEN_KEY);
+      } catch (e) { /* private mode: token just won't persist */ }
+    }
+
+    function tokenBoxHtml() {
+      if (getToken()) {
+        return "Using a saved GitHub token. " +
+          "<button type='button' id='clearTok'>Remove token</button>";
+      }
+      return "<label>GitHub token" +
+        "<input id='f-token' type='password' autocomplete='off' placeholder='github_pat_...'></label>" +
+        "<small>Create a fine-grained token with <b>Issues: Read and write</b> on this " +
+        "repository. It is stored only in this browser. " +
+        "<a href='https://github.com/settings/personal-access-tokens/new' target='_blank' " +
+        "rel='noopener'>Create one</a>.</small>";
+    }
+
+    function wireTokenBox() {
+      const clearTok = document.getElementById("clearTok");
+      if (clearTok) {
+        clearTok.addEventListener("click", () => {
+          setToken("");
+          const box = document.getElementById("tokenbox");
+          box.innerHTML = tokenBoxHtml();
+          wireTokenBox();
+        });
+      }
+    }
+
+    function setStatus(msg, kind) {
+      const el = document.getElementById("f-status");
+      el.className = kind === "error" ? "status-error" : kind === "ok" ? "status-ok" : "empty";
+      el.innerHTML = msg;
+    }
+
+    function showAddForm() {
+      document.querySelectorAll("nav a.active").forEach(a => a.classList.remove("active"));
+      content.innerHTML =
+        "<h1>Add a recipe</h1>" +
+        "<form id='addForm'>" +
+          "<div class='tokenbox' id='tokenbox'>" + tokenBoxHtml() + "</div>" +
+          "<label>Title <span class='opt'>(optional)</span>" +
+            "<input id='f-title' type='text' autocomplete='off'></label>" +
+          "<label>Recipe text" +
+            "<textarea id='f-text' required></textarea></label>" +
+          "<label>Source link <span class='opt'>(optional)</span>" +
+            "<input id='f-source' type='url' autocomplete='off' placeholder='https://...'></label>" +
+          "<button type='submit'>Submit recipe</button>" +
+          "<p id='f-status'></p>" +
+        "</form>";
+      window.scrollTo(0, 0);
+      wireTokenBox();
+      document.getElementById("addForm").addEventListener("submit", submitRecipe);
+    }
+
+    async function submitRecipe(e) {
+      e.preventDefault();
+      const tokenInput = document.getElementById("f-token");
+      const token = getToken() || (tokenInput ? tokenInput.value.trim() : "");
+      const title = document.getElementById("f-title").value.trim();
+      const text = document.getElementById("f-text").value.trim();
+      const source = document.getElementById("f-source").value.trim();
+
+      if (!token) { setStatus("Please enter a GitHub token.", "error"); return; }
+      if (!text) { setStatus("Recipe text is required.", "error"); return; }
+
+      // Match the issue-form body the workflow expects.
+      const body =
+        "### Title\n\n" + (title || "_No response_") +
+        "\n\n### Recipe text\n\n" + text +
+        "\n\n### Source link\n\n" + (source || "_No response_");
+      const firstLine = (text.split("\n").find(l => l.trim()) || "Recipe")
+        .replace(/^#+\s*/, "").trim();
+      const issueTitle = (title || firstLine).slice(0, 80) || "Recipe";
+
+      setStatus("Submitting…", null);
+      try {
+        const res = await fetch("https://api.github.com/repos/" + REPO + "/issues", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+            "X-GitHub-Api-Version": "2022-11-28"
+          },
+          body: JSON.stringify({ title: issueTitle, body: body })
+        });
+        if (!res.ok) {
+          let msg = res.status + " " + res.statusText;
+          try { const j = await res.json(); if (j && j.message) msg = j.message; } catch (e) {}
+          throw new Error(msg);
+        }
+        const issue = await res.json();
+        setToken(token);
+        setStatus(
+          "Submitted. Your recipe will appear on the site a minute or two after it is " +
+          "processed. <a href='" + issue.html_url + "' target='_blank' rel='noopener'>" +
+          "View submission</a>.",
+          "ok"
+        );
+        document.getElementById("f-title").value = "";
+        document.getElementById("f-text").value = "";
+        document.getElementById("f-source").value = "";
+        const box = document.getElementById("tokenbox");
+        box.innerHTML = tokenBoxHtml();
+        wireTokenBox();
+      } catch (err) {
+        setStatus("Could not submit: " + err.message, "error");
+      }
+    }
+
+    document.getElementById("addBtn").addEventListener("click", showAddForm);
 
     async function init() {
       let recipes;
