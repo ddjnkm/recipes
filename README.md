@@ -41,14 +41,15 @@ Because the site is static, the form needs a GitHub token to submit:
    browser (`localStorage`) and is sent only to `api.github.com` — never
    committed to the repo. Use **Remove token** to clear it.
 
-## Editing a recipe
+## Editing or deleting a recipe
 
 Open a recipe on the site and click **Edit**. The raw markdown loads in a
-text box; make your changes and click **Save changes**. This commits the file
-straight to the repo via the GitHub Contents API (using the same saved token,
-which needs **Contents: Read and write**), and the site updates after the
-Pages redeploy. The `Sync manifest` workflow refreshes `recipes.json` if a
-title changed.
+text box; make your changes and click **Save changes**, or click **Delete
+recipe** (with a confirmation) to remove it. Both commit straight to the repo
+via the GitHub Contents API (using the same saved token, which needs
+**Contents: Read and write**), and the site updates after the Pages redeploy.
+The `Sync manifest` workflow refreshes `recipes.json` when a recipe is edited,
+renamed, or deleted.
 
 ### From GitHub directly
 

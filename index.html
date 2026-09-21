@@ -106,6 +106,8 @@
       color: inherit;
     }
     .editactions button:hover { background: rgba(128, 128, 128, 0.15); }
+    .editactions .danger { color: #c0392b; border-color: rgba(192, 57, 43, 0.5); }
+    .editactions .danger:hover { background: rgba(192, 57, 43, 0.12); }
     #browse summary {
       cursor: pointer;
       padding: 0.4rem 0.6rem;
@@ -436,7 +438,8 @@
         "<textarea id='edit-text' spellcheck='false'></textarea>" +
         "<div class='editactions'>" +
           "<button type='button' id='saveEdit'>Save changes</button> " +
-          "<button type='button' id='cancelEdit'>Cancel</button>" +
+          "<button type='button' id='cancelEdit'>Cancel</button> " +
+          "<button type='button' id='deleteEdit' class='danger'>Delete recipe</button>" +
         "</div>" +
         "<p id='f-status'></p>";
       document.getElementById("edit-text").value = raw;
@@ -445,6 +448,7 @@
       document.getElementById("saveEdit").addEventListener("click", () => saveEdit(file));
       document.getElementById("cancelEdit").addEventListener("click",
         () => showRecipe(file, links[file]));
+      document.getElementById("deleteEdit").addEventListener("click", () => deleteRecipe(file));
     }
 
     async function saveEdit(file) {
@@ -481,6 +485,44 @@
         setStatus("Saved. The site will update in a minute or two.", "ok");
       } catch (err) {
         setStatus("Could not save: " + err.message, "error");
+      }
+    }
+
+    async function deleteRecipe(file) {
+      const token = getToken();
+      if (!token) { setStatus("Save a GitHub token first (in the box above).", "error"); return; }
+      if (!confirm("Delete this recipe? This cannot be undone.")) return;
+
+      const path = CONTENTS_API + "recipes/" + encodeURIComponent(file);
+      setStatus("Deleting…", null);
+      try {
+        // The Contents API needs the current file SHA to delete it.
+        const getRes = await fetch(path, { headers: apiHeaders(token) });
+        if (!getRes.ok) {
+          let msg = getRes.status + " " + getRes.statusText;
+          try { const j = await getRes.json(); if (j && j.message) msg = j.message; } catch (e) {}
+          throw new Error(msg);
+        }
+        const meta = await getRes.json();
+        const delRes = await fetch(path, {
+          method: "DELETE",
+          headers: Object.assign(apiHeaders(token), { "Content-Type": "application/json" }),
+          body: JSON.stringify({ message: "Delete recipes/" + file, sha: meta.sha })
+        });
+        if (!delRes.ok) {
+          let msg = delRes.status + " " + delRes.statusText;
+          try { const j = await delRes.json(); if (j && j.message) msg = j.message; } catch (e) {}
+          throw new Error(msg);
+        }
+        // Remove it from the sidebar right away; the list is rebuilt on deploy.
+        if (links[file] && links[file].parentElement) links[file].parentElement.remove();
+        delete links[file];
+        currentFile = null;
+        history.replaceState(null, "", location.pathname + location.search);
+        content.innerHTML = "<p class='empty'>Recipe deleted. It will disappear from " +
+          "the list after the next deploy.</p>";
+      } catch (err) {
+        setStatus("Could not delete: " + err.message, "error");
       }
     }
 
