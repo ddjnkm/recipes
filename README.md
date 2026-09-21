@@ -35,10 +35,20 @@ workflow redeploys. The recipe appears a minute or two later.
 Because the site is static, the form needs a GitHub token to submit:
 
 1. Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new)
-   scoped to this repository with **Issues: Read and write**.
+   scoped to this repository with **Contents and Issues: Read and write**
+   (Issues to add a recipe, Contents to edit one).
 2. Paste it into the form and click **Save token**. It is stored only in your
    browser (`localStorage`) and is sent only to `api.github.com` — never
    committed to the repo. Use **Remove token** to clear it.
+
+## Editing a recipe
+
+Open a recipe on the site and click **Edit**. The raw markdown loads in a
+text box; make your changes and click **Save changes**. This commits the file
+straight to the repo via the GitHub Contents API (using the same saved token,
+which needs **Contents: Read and write**), and the site updates after the
+Pages redeploy. The `Sync manifest` workflow refreshes `recipes.json` if a
+title changed.
 
 ### From GitHub directly
 

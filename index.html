@@ -70,6 +70,42 @@
     #saveTok { margin-top: 0.5rem; }
     .status-error { color: #c0392b; }
     .status-ok { color: #1e8e3e; }
+    .editbtn {
+      float: right;
+      margin-left: 1rem;
+      padding: 0.3rem 0.7rem;
+      font: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: 1px solid rgba(128, 128, 128, 0.4);
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+    }
+    .editbtn:hover { background: rgba(128, 128, 128, 0.15); }
+    #edit-text {
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 24rem;
+      margin: 1rem 0;
+      padding: 0.75rem;
+      font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      border: 1px solid rgba(128, 128, 128, 0.4);
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+      resize: vertical;
+    }
+    .editactions button {
+      font: inherit;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      border: 1px solid rgba(128, 128, 128, 0.5);
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+    }
+    .editactions button:hover { background: rgba(128, 128, 128, 0.15); }
     #browse summary {
       cursor: pointer;
       padding: 0.4rem 0.6rem;
@@ -116,6 +152,8 @@
     const list = document.getElementById("list");
     const content = document.getElementById("content");
     const RECIPES_DIR = "recipes/";
+    const links = {};        // file -> sidebar <a>, filled by init()
+    let currentFile = null;  // the recipe currently shown
 
     // Strip YAML front matter before rendering so it never shows on the page.
     function stripFrontMatter(text) {
@@ -194,7 +232,11 @@
         const res = await fetch(RECIPES_DIR + encodeURIComponent(file));
         if (!res.ok) throw new Error(res.status);
         const md = stripFrontMatter(await res.text());
-        content.innerHTML = renderMarkdown(md);
+        currentFile = file;
+        content.innerHTML =
+          "<button class='editbtn' id='editBtn' type='button'>Edit</button>" +
+          renderMarkdown(md);
+        document.getElementById("editBtn").addEventListener("click", () => editRecipe(file));
         location.hash = encodeURIComponent(file);
         // The recipe renders in place, below the list.
       } catch (err) {
@@ -204,6 +246,7 @@
 
     // Return to the empty "home" view with no recipe selected.
     function goHome() {
+      currentFile = null;
       document.querySelectorAll("nav a.active").forEach(a => a.classList.remove("active"));
       content.innerHTML = "<p class='empty'>Select a recipe from the list.</p>";
       history.replaceState(null, "", location.pathname + location.search);
@@ -241,8 +284,8 @@
       return "<label>GitHub token" +
         "<input id='f-token' type='password' autocomplete='off' placeholder='github_pat_...'></label>" +
         "<button type='button' id='saveTok'>Save token</button>" +
-        "<small>Create a fine-grained token with <b>Issues: Read and write</b> on this " +
-        "repository. It is stored only in this browser. " +
+        "<small>Create a fine-grained token with <b>Contents and Issues: Read and write</b> " +
+        "on this repository. It is stored only in this browser. " +
         "<a href='https://github.com/settings/personal-access-tokens/new' target='_blank' " +
         "rel='noopener'>Create one</a>.</small>";
     }
@@ -353,6 +396,94 @@
 
     document.getElementById("addBtn").addEventListener("click", showAddForm);
 
+    // --- Edit an existing recipe ------------------------------------------
+    // Commits the edited markdown straight to the repo via the Contents API.
+    // Needs the saved token to have "Contents: Read and write".
+    const CONTENTS_API = "https://api.github.com/repos/" + REPO + "/contents/";
+
+    function apiHeaders(token) {
+      return {
+        "Authorization": "Bearer " + token,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      };
+    }
+
+    // Base64-encode UTF-8 text (recipes may contain non-ASCII, e.g. Korean).
+    function toBase64(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = "";
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin);
+    }
+
+    async function editRecipe(file) {
+      document.querySelectorAll("nav a.active").forEach(a => a.classList.remove("active"));
+      if (links[file]) links[file].classList.add("active");
+      content.innerHTML = "<p class='empty'>Loading…</p>";
+      let raw;
+      try {
+        const res = await fetch(RECIPES_DIR + encodeURIComponent(file) + "?_=" + Date.now());
+        if (!res.ok) throw new Error(res.status);
+        raw = await res.text();
+      } catch (err) {
+        content.innerHTML = "<p class='empty'>Could not load this recipe to edit.</p>";
+        return;
+      }
+      content.innerHTML =
+        "<h1>Edit recipe</h1>" +
+        "<div class='tokenbox' id='tokenbox'>" + tokenBoxHtml() + "</div>" +
+        "<textarea id='edit-text' spellcheck='false'></textarea>" +
+        "<div class='editactions'>" +
+          "<button type='button' id='saveEdit'>Save changes</button> " +
+          "<button type='button' id='cancelEdit'>Cancel</button>" +
+        "</div>" +
+        "<p id='f-status'></p>";
+      document.getElementById("edit-text").value = raw;
+      window.scrollTo(0, 0);
+      wireTokenBox();
+      document.getElementById("saveEdit").addEventListener("click", () => saveEdit(file));
+      document.getElementById("cancelEdit").addEventListener("click",
+        () => showRecipe(file, links[file]));
+    }
+
+    async function saveEdit(file) {
+      const token = getToken();
+      if (!token) { setStatus("Save a GitHub token first (in the box above).", "error"); return; }
+      const newContent = document.getElementById("edit-text").value;
+      if (!newContent.trim()) { setStatus("The recipe cannot be empty.", "error"); return; }
+
+      const path = CONTENTS_API + "recipes/" + encodeURIComponent(file);
+      setStatus("Saving…", null);
+      try {
+        // The Contents API needs the current file SHA to update it.
+        const getRes = await fetch(path, { headers: apiHeaders(token) });
+        if (!getRes.ok) {
+          let msg = getRes.status + " " + getRes.statusText;
+          try { const j = await getRes.json(); if (j && j.message) msg = j.message; } catch (e) {}
+          throw new Error(msg);
+        }
+        const meta = await getRes.json();
+        const putRes = await fetch(path, {
+          method: "PUT",
+          headers: Object.assign(apiHeaders(token), { "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            message: "Update recipes/" + file,
+            content: toBase64(newContent),
+            sha: meta.sha
+          })
+        });
+        if (!putRes.ok) {
+          let msg = putRes.status + " " + putRes.statusText;
+          try { const j = await putRes.json(); if (j && j.message) msg = j.message; } catch (e) {}
+          throw new Error(msg);
+        }
+        setStatus("Saved. The site will update in a minute or two.", "ok");
+      } catch (err) {
+        setStatus("Could not save: " + err.message, "error");
+      }
+    }
+
     async function init() {
       let recipes;
       try {
@@ -370,7 +501,6 @@
       }
 
       list.innerHTML = "";
-      const links = {};
       for (const recipe of recipes) {
         const li = document.createElement("li");
         const a = document.createElement("a");
